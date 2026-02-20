@@ -37,8 +37,7 @@ local AUTO_HATCH_EGGS = {
     "Basic",
     "Silver",
     "Gold",
-    "Diamond",
-    "Star"
+    "Diamond"
 }
 local AUTO_DELETE_KEEP_KEYWORDS = {
     "star",
@@ -1036,4 +1035,5 @@ sched:add("DeleteStickers", 25, function()
 end)
 
 sched:run()
+
 
