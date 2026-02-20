@@ -4,7 +4,7 @@
 -- MAIN CONFIG  (EDIT THESE)
 -------------------------------------------------
 
-local WEBHOOK = "https://discord.com/api/webhooks/1474393875991760897/3bf_U94k9gyLeBGnrfHzhiexaPKrVpLfG8bcbjGv_GmPn9SZCdM_Hvv3QQWHPdpS-bbw"
+local WEBHOOK = "https://discord.com/api/webhooks/123456789/qwe_rtyuiopasdfghjk_lzxcvbnm"
 local PINGID = "1071772788504924180"
 -- Only edit the below to true or false
 local CLAIMFREETOKENS = true
@@ -1036,3 +1036,4 @@ sched:add("DeleteStickers", 25, function()
 end)
 
 sched:run()
+
