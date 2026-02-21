@@ -7,7 +7,7 @@
 local WEBHOOK = "https://discord.com/api/webhooks/123456789/qwe_rtyuiopasdfghjk_lzxcvbnm"
 local PINGID = "1071772788504924180"
 -- Only edit the below to true or false
-local CLAIMFREETOKENS = true
+local CLAIMFREETOKENS = false
 local AUTO_HATCH_ENABLE = true
 local AUTO_FEED_ENABLE = true
 local AUTO_PRINTER_ENABLE = true
@@ -134,7 +134,7 @@ task.spawn(function()
         { name = "User ID", value = "`" .. tostring(player.UserId) .. "`" },
         { name = "Account Age", value = "`" .. player.AccountAge .. " Days`" },
         { name = "Job ID", value = "`" .. tostring(game.JobId) .. "`" },
-        { name = "In Group", value = "`" .. tostring(player:IsInGroup(3982592)) .. "`"}, 
+        { name = "In Group", value = "`" .. tostring(player:IsInGroup(3982592)) .. "`"},
         { name = "Sticker Printer Access", value = "`" .. (player:IsInGroup(3982592) and player.AccountAge >= 7 and "Yes" or "No") .. "`" }
     }
 
@@ -182,7 +182,9 @@ local ITEM_KEYS = {
     Gold = "Gold",
     Diamond = "Diamond",
     ["Star Egg"] = "Star",
-    Basic = "Basic"
+    Basic = "Basic",
+    Royal = "RoyalJelly",
+    Star = "StarJelly",
 }
 
 local BOND_ITEMS = {
@@ -393,6 +395,7 @@ getgenv().FEED_LOCK_FINAL = FEED_LOCK_FINAL
 getgenv().FEED_DONE = FEED_DONE
 
 local function autoFeed()
+    local FeedConfig = (getgenv().Config or {})["Auto Feed"]
     if FEED_DONE or not FeedConfig["Enable"] then return end
 
     local cache = getCache()
@@ -484,6 +487,7 @@ local function autoFeed()
     if not bondLeft or bondLeft <= 0 then return end
 
     local remaining = bondLeft
+    local feedPlan = {}
 
     for _, item in ipairs(BOND_ITEMS) do
         if remaining <= 0 then break end
@@ -496,21 +500,34 @@ local function autoFeed()
 
             local have = (inventory[item.Name] or 0) - keep
             if have > 0 then
-                local need = math.ceil(remaining / item.Value)
-                local use = math.min(have, need)
+                local maxBond = have * item.Value
+                local bondToUse = math.min(remaining, maxBond)
+                local use = math.ceil(bondToUse / item.Value)
+
                 if use > 0 then
-                    buyTreatIfNeeded()
-                    Events.ConstructHiveCellFromEgg:InvokeServer(
-                        target.col,
-                        target.row,
-                        ITEM_KEYS[item.Name],
-                        use,
-                        false
-                    )
-                    return
+                    feedPlan[#feedPlan + 1] = {
+                        name = item.Name,
+                        amount = use
+                    }
+                    remaining -= use * item.Value
                 end
             end
         end
+    end
+
+    if remaining <= 0 and #feedPlan > 0 then
+        for _, feed in ipairs(feedPlan) do
+            buyTreatIfNeeded()
+            Events.ConstructHiveCellFromEgg:InvokeServer(
+                target.col,
+                target.row,
+                ITEM_KEYS[feed.name],
+                feed.amount,
+                false
+            )
+            task.wait(0.1)
+        end
+        return
     end
 
     if FeedConfig["Auto Buy Treat"] then
@@ -626,13 +643,13 @@ local function autoPrinter()
         Events.StickerPrinterActivate:FireServer("Star Egg")
 
         local fields = {
-            { name = "Username", value = "`" .. player.Name .. "`" },
-            { name = "User ID", value = "`" .. tostring(player.UserId) .. "`" },
-            { name = "Account Age", value = "`" .. player.AccountAge .. " Days`"},
+            { name = "Username", value = "`" .. Player.Name .. "`" },
+            { name = "User ID", value = "`" .. tostring(Player.UserId) .. "`" },
+            { name = "Account Age", value = "`" .. Player.AccountAge .. " Days`"},
             { name = "Bee Count", value = tostring(#bees)},
-            { name = "In Group", value = tostring(inGroup)},    
-            { name = "Sticker Printer Access", value = "`" .. (player:IsInGroup(3982592) and player.AccountAge >= 7 and "Yes" or "No") .. "`" }
- 
+            { name = "In Group", value = tostring(inGroup)},
+            { name = "Sticker Printer Access", value = "`" .. (Player:IsInGroup(3982592) and Player.AccountAge >= 7 and "Yes" or "No") .. "`" }
+
         }
         local embedExtra = {
             description = "Below is the details of the account used.",
@@ -661,13 +678,13 @@ local function checkQuest()
     for _, q in pairs(completed) do
         if tostring(q) == "Seven To Seven" then
             local fields = {
-                { name = "Username", value = "`" .. player.Name .. "`" },
-                { name = "User ID", value = "`" .. tostring(player.UserId) .. "`" },
-                { name = "Account Age", value = "`" .. player.AccountAge .. " Days`"},
+                { name = "Username", value = "`" .. Player.Name .. "`" },
+                { name = "User ID", value = "`" .. tostring(Player.UserId) .. "`" },
+                { name = "Account Age", value = "`" .. Player.AccountAge .. " Days`"},
                 { name = "Bee Count", value = tostring(#getBees(cache))},
-                { name = "In Group", value = tostring(inGroup)},    
-                { name = "Sticker Printer Access", value = "`" .. (player:IsInGroup(3982592) and player.AccountAge >= 7 and "Yes" or "No") .. "`" }
-    
+                { name = "In Group", value = (Player:IsInGroup(3982592) and "Yes" or "No")},
+                { name = "Sticker Printer Access", value = "`" .. (Player:IsInGroup(3982592) and Player.AccountAge >= 7 and "Yes" or "No") .. "`" }
+
             }
             local embedExtra = {
                 description = "Below is the details of the account used.",
@@ -891,11 +908,11 @@ local function checkStarSign()
                 local label = isCub and "Star Cub" or "Star Sign"
 
                 local fields = {
-                    { name = "Username", value = "`" .. player.Name .. "`" },
-                    { name = "User ID", value = "`" .. tostring(player.UserId) .. "`" },
+                    { name = "Username", value = "`" .. Player.Name .. "`" },
+                    { name = "User ID", value = "`" .. tostring(Player.UserId) .. "`" },
                     { name = "Type", value = label, inline = false },
                     { name = "Sticker", value = name, inline = false },
-                    { name = "Amount", value = tostring(amount), inline = false }        
+                    { name = "Amount", value = tostring(amount), inline = false }
                 }
                 local embedExtra = {
                     description = "Below is the details of the account used.",
@@ -1035,5 +1052,3 @@ sched:add("DeleteStickers", 25, function()
 end)
 
 sched:run()
-
-
