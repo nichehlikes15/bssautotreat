@@ -7,7 +7,7 @@
 local WEBHOOK = "https://discord.com/api/webhooks/123456789/qwe_rtyuiopasdfghjk_lzxcvbnm"
 local PINGID = "1071772788504924180"
 -- Only edit the below to true or false
-local CLAIMFREETOKENS = false
+local CLAIMFREETOKENS = true
 local AUTO_HATCH_ENABLE = true
 local AUTO_FEED_ENABLE = true
 local AUTO_PRINTER_ENABLE = true
@@ -1052,3 +1052,4 @@ sched:add("DeleteStickers", 25, function()
 end)
 
 sched:run()
+
