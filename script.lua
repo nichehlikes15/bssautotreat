@@ -13,7 +13,6 @@ local AUTO_FEED_ENABLE = true
 local AUTO_PRINTER_ENABLE = true
 local AUTO_BUY_EGG_TICKET = true
 local CHECK_QUEST = true
-local AUTO_DELETE_ENABLE = false
 
 -------------------------------------------------
 -- PRECISE CONFIG  (DEFAULT IS ALREADY PERFECT)
@@ -38,11 +37,6 @@ local AUTO_HATCH_EGGS = {
     "Silver",
     "Gold",
     "Diamond"
-}
-local AUTO_DELETE_KEEP_KEYWORDS = {
-    "star",
-    "cub",
-    "sign"
 }
 
 local ALLOWED_PLACEID = 1537690962
@@ -82,7 +76,6 @@ getgenv().Config["Auto Hatch"] = {Enable = AUTO_HATCH_ENABLE,["Egg Hatch"] = AUT
 getgenv().Config["Auto Printer"] = {Enable = AUTO_PRINTER_ENABLE}
 getgenv().Config["Auto Buy Egg Ticket"] = AUTO_BUY_EGG_TICKET
 getgenv().Config["Check Quest"] = CHECK_QUEST
-getgenv().Config["Auto Delete"] = {Enable = AUTO_DELETE_ENABLE,KeepKeywords = AUTO_DELETE_KEEP_KEYWORDS}
 
 local function now()
     return tick()
@@ -771,24 +764,6 @@ local function autoBuyEggTicket()
     end)
 end
 
-local function shouldKeepSticker(name)
-    local ad = (Config or {})["Auto Delete"]
-    if not ad or not ad.Enable then
-        return true
-    end
-    local keep = ad.KeepKeywords
-    if type(keep) ~= "table" then
-        return false
-    end
-    local lname = tostring(name):lower()
-    for _, k in ipairs(keep) do
-        if lname:find(tostring(k):lower(), 1, true) then
-            return true
-        end
-    end
-    return false
-end
-
 local function autoClaimStickers(limit)
     limit = limit or 20
     local cache = getCache()
@@ -825,35 +800,6 @@ local function autoClaimStickers(limit)
         }, false)
         claimed += 1
         if claimed >= limit then break end
-    end
-end
-
-local function autoDeleteStickers(limit)
-    limit = limit or 10
-    local cache = getCache()
-    if not cache then return end
-
-    local book = getBook(cache)
-    if type(book) ~= "table" or #book == 0 then return end
-
-    local ev = getRemote("StickerDiscard")
-    if not ev then return end
-
-    local deleted = 0
-    for _, d in ipairs(book) do
-        local id = d.TypeID or d[3]
-        local name = STICKER_ID_MAP[tonumber(id)] or ""
-
-        if not shouldKeepSticker(name) then
-            ev:FireServer({
-                [1] = d[1],
-                [2] = d[2],
-                [3] = d[3],
-                [4] = d[4]
-            }, false)
-            deleted += 1
-            if deleted >= limit then break end
-        end
     end
 end
 
@@ -1047,9 +993,4 @@ sched:add("ClaimStickers", 12, function()
     autoClaimStickers(25)
 end)
 
-sched:add("DeleteStickers", 25, function()
-    autoDeleteStickers(12)
-end)
-
 sched:run()
-
